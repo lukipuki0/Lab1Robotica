@@ -133,6 +133,585 @@ Cambiar los intervalos de tiempo en los que se aplican comandos o se toman lectu
 
 ---
 
+## Codificacíon
+
+### Parte 1
+
+* **Prueba de movimiento inicial**
+  const int IN1 = 9;  
+  const int IN2 = 10;  
+  const int ENA = 11;  
+  
+  const int IN3 = 4;
+  const int IN4 = 5; 
+  const int ENB = 6;  
+  
+  void setup() {
+    pinMode(IN1, OUTPUT);
+    pinMode(IN2, OUTPUT);
+    pinMode(IN3, OUTPUT);
+    pinMode(IN4, OUTPUT);
+    pinMode(ENA, OUTPUT);
+    pinMode(ENB, OUTPUT);
+    
+    digitalWrite(ENA, HIGH);
+    digitalWrite(ENB, HIGH);
+    
+    detener();
+    
+    delay(2000);
+    
+    ejecutarSecuenciaPrueba();
+  }
+  
+  void loop() {
+    ejecutarSecuenciaPrueba();
+    delay(3000); 
+  
+  void avanzar() {
+    digitalWrite(IN1, HIGH);
+    digitalWrite(IN2, LOW);
+    
+    digitalWrite(IN3, HIGH);
+    digitalWrite(IN4, LOW);
+  }
+  
+  void retroceder() {
+    digitalWrite(IN1, LOW);
+    digitalWrite(IN2, HIGH);
+    
+    digitalWrite(IN3, LOW);
+    digitalWrite(IN4, HIGH);
+  }
+  
+  void girarDerecha() {
+    digitalWrite(IN1, HIGH);
+    digitalWrite(IN2, LOW);
+    
+    digitalWrite(IN3, LOW);
+    digitalWrite(IN4, HIGH);
+  }
+  
+  void girarIzquierda() {
+    digitalWrite(IN1, LOW);
+    digitalWrite(IN2, HIGH);
+    
+    digitalWrite(IN3, HIGH);
+    digitalWrite(IN4, LOW);
+  }
+  
+  void detener() {
+    digitalWrite(IN1, LOW);
+    digitalWrite(IN2, LOW);
+    
+    digitalWrite(IN3, LOW);
+    digitalWrite(IN4, LOW);
+  }
+  
+  void ejecutarSecuenciaPrueba() {
+    avanzar();
+    delay(500);
+    
+    detener();
+    delay(1000);
+    
+    retroceder();
+    delay(500);
+    
+    detener();
+    delay(1000);
+    
+    girarDerecha();
+    delay(500);
+    
+    detener();
+    delay(1000);
+    
+    girarIzquierda();
+    delay(500);
+    
+    detener();
+    delay(1000);
+  }
+
+* **Prueba de sensor ultrasónico**
+  const int TRIG = 2;
+  const int ECHO = 3;
+  
+  size_t duracion;
+  float distancia;
+  float distanciaEnCm;
+  
+  void setup() {
+    Serial.begin(9600);
+    Serial.println("Iniciando el ultrasónico");
+  
+    pinMode(TRIG, OUTPUT);
+    pinMode(ECHO, INPUT);
+  
+    digitalWrite(TRIG, LOW);
+  
+    Serial.println("Sensor ultrasónico iniciado.");
+    Serial.println("Mostrando mediciones de distancia cada 500ms:");
+  
+  }
+  
+  void loop() {
+  
+    digitalWrite(TRIG, LOW);
+    delayMicroseconds(2);
+    digitalWrite(TRIG, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(TRIG, LOW);
+  
+    duracion = pulseIn(ECHO, HIGH);
+    distanciaEnCm = (duracion * 0.0343) / 2; 
+  
+    Serial.print("Distancia: ");
+    Serial.print(distanciaEnCm);
+    Serial.println(" cm");
+  
+    delay(1000);
+  }
+
+* **Prueba de MPU**
+  #include <Wire.h>
+  #include <MPU9250_asukiaaa.h>
+  
+  MPU9250_asukiaaa mpu;
+  
+  float gyroBiasX = 0, accelBiasX = 0;
+  const int N = 500;
+  
+  void setup() {
+    Serial.begin(115200);
+    Wire.begin();
+    mpu.setWire(&Wire);
+    mpu.beginAccel();
+    mpu.beginGyro();
+    delay(1000);
+  
+    Serial.println("Calibrando...");
+  
+    for (int i = 0; i < N; i++) {
+      mpu.accelUpdate();
+      mpu.gyroUpdate();
+      gyroBiasX += mpu.gyroX();
+      accelBiasX += mpu.accelX();
+      delay(5);
+    }
+  
+    gyroBiasX /= N;
+    accelBiasX /= N;
+  
+    Serial.print("Bias del giroscopio X: ");
+    Serial.println(gyroBiasX);
+    Serial.print("Bias del acelerómetro X: ");
+    Serial.println(accelBiasX);
+  }
+  
+  void loop() {
+    mpu.accelUpdate();
+    mpu.gyroUpdate();
+  
+    float gyroX_corr = mpu.gyroX() - gyroBiasX;
+    float accelX_corr = mpu.accelX() - accelBiasX;
+  
+    Serial.print("Giro corregido X: ");
+    Serial.print(gyroX_corr);
+    Serial.print(" | Aceleración corregida X: ");
+    Serial.println(accelX_corr);
+  
+    delay(100);
+  }
+
+### parte 2
+
+* **Prueba de movimiento con las ecuaciones**
+
+  #include <math.h>
+  
+  // Motor A 
+  const int IN1 = 9;  
+  const int IN2 = 10; 
+  const int ENA = 11; 
+  
+  // Motor B 
+  const int IN3 = 4; 
+  const int IN4 = 5;
+  const int ENB = 6; 
+  
+  const float WHEEL_RADIUS = 0.033;     
+  const float WHEEL_BASE_WIDTH = 0.15;
+  
+  const float MOTOR_LINEAR_SPEED = 0.15;   
+  
+  float robot_x = 0.0;     
+  float robot_y = 0.0;    
+  float robot_theta = 0.0; 
+  
+  void setup() {
+    Serial.begin(9600); 
+  
+    pinMode(IN1, OUTPUT);
+    pinMode(IN2, OUTPUT);
+    pinMode(IN3, OUTPUT);
+    pinMode(IN4, OUTPUT);
+    pinMode(ENA, OUTPUT);
+    pinMode(ENB, OUTPUT);
+  
+    digitalWrite(ENA, HIGH);
+    digitalWrite(ENB, HIGH);
+  
+    detener();
+  
+    Serial.println("Robot listo. Iniciando secuencia de prueba en 2 segundos...");
+    Serial.println("Pose inicial: X=0.00, Y=0.00, Theta=0.00 deg");
+  
+    delay(2000);
+  
+    ejecutarSecuenciaPrueba();
+  }
+  
+  void loop() {
+    ejecutarSecuenciaPrueba();
+    Serial.println("--- Secuencia completada, esperando 3 segundos ---");
+    delay(3000); 
+  }
+  
+  void avanzar() {
+    digitalWrite(IN1, HIGH); digitalWrite(IN2, LOW);
+    digitalWrite(IN3, HIGH); digitalWrite(IN4, LOW);
+  }
+  
+  void retroceder() {
+    digitalWrite(IN1, LOW); digitalWrite(IN2, HIGH);  
+    digitalWrite(IN3, LOW); digitalWrite(IN4, HIGH);  
+  }
+  
+  void girarDerecha() {
+    digitalWrite(IN1, HIGH); digitalWrite(IN2, LOW); 
+    digitalWrite(IN3, LOW); digitalWrite(IN4, HIGH); 
+  }
+  
+  void girarIzquierda() {
+    digitalWrite(IN1, LOW); digitalWrite(IN2, HIGH); 
+    digitalWrite(IN3, HIGH); digitalWrite(IN4, LOW); 
+  
+  void detener() {
+    digitalWrite(IN1, LOW); digitalWrite(IN2, LOW); 
+    digitalWrite(IN3, LOW); digitalWrite(IN4, LOW); 
+  
+  /**
+   * @param vL 
+   * @param vR
+   * @param dt 
+   */
+  
+  void updatePosition(float vL, float vR, float dt) {
+    if (dt == 0) return; 
+  
+    float v_robot = (vR + vL) / 2.0;
+    float omega_robot = (vR - vL) / WHEEL_BASE_WIDTH;
+  
+    float dx = v_robot * cos(robot_theta) * dt;
+    float dy = v_robot * sin(robot_theta) * dt;
+    float d_theta = omega_robot * dt;
+  
+    robot_x += dx;
+    robot_y += dy;
+    robot_theta += d_theta;
+  
+    while (robot_theta > M_PI) {
+      robot_theta -= 2.0 * M_PI;
+    }
+    while (robot_theta < -M_PI) {
+      robot_theta += 2.0 * M_PI;
+    }
+  
+    Serial.print("Pose estimada -> ");
+    Serial.print("X: "); Serial.print(robot_x, 3);
+    Serial.print(" m, Y: "); Serial.print(robot_y, 3);
+    Serial.print(" m, Theta: "); Serial.print(robot_theta * 180.0 / M_PI, 2);
+    Serial.println(" deg");
+  }
+  
+  void ejecutarSecuenciaPrueba() {
+    float duration;
+  
+    Serial.println("Iniciando secuencia de prueba...");
+  
+    duration = 0.5; 
+    Serial.print("Avanzando por "); Serial.print(duration); Serial.println("s");
+    avanzar();
+    delay((unsigned long)(duration * 1000));
+    updatePosition(MOTOR_LINEAR_SPEED, MOTOR_LINEAR_SPEED, duration);
+  
+    duration = 1.0;
+    Serial.print("Deteniendo por "); Serial.print(duration); Serial.println("s");
+    detener();
+    delay((unsigned long)(duration * 1000));
+    updatePosition(0.0, 0.0, duration);
+  
+    duration = 0.5; 
+    Serial.print("Retrocediendo por "); Serial.print(duration); Serial.println("s");
+    retroceder();
+    delay((unsigned long)(duration * 1000));
+    updatePosition(-MOTOR_LINEAR_SPEED, -MOTOR_LINEAR_SPEED, duration);
+  
+    duration = 1.0;
+    Serial.print("Deteniendo por "); Serial.print(duration); Serial.println("s");
+    detener();
+    delay((unsigned long)(duration * 1000));
+    updatePosition(0.0, 0.0, duration);
+  
+    duration = 0.5;
+    Serial.print("Girando a la derecha por "); Serial.print(duration); Serial.println("s");
+    girarDerecha(); 
+    delay((unsigned long)(duration * 1000));
+    updatePosition(MOTOR_LINEAR_SPEED, -MOTOR_LINEAR_SPEED, duration);
+  
+    duration = 1.0; 
+    Serial.print("Deteniendo por "); Serial.print(duration); Serial.println("s");
+    detener();
+    delay((unsigned long)(duration * 1000));
+    updatePosition(0.0, 0.0, duration);
+  
+    duration = 0.5;
+    Serial.print("Girando a la izquierda por "); Serial.print(duration); Serial.println("s");
+    girarIzquierda(); 
+    delay((unsigned long)(duration * 1000));
+    updatePosition(-MOTOR_LINEAR_SPEED, MOTOR_LINEAR_SPEED, duration);
+  
+    duration = 1.0; 
+    Serial.print("Deteniendo por "); Serial.print(duration); Serial.println("s");
+    detener();
+    delay((unsigned long)(duration * 1000));
+    updatePosition(0.0, 0.0, duration);
+  
+    Serial.println("Fin de la secuencia de prueba.");
+    Serial.print("Pose final estimada: ");
+    Serial.print("X: "); Serial.print(robot_x, 3);
+    Serial.print(" m, Y: "); Serial.print(robot_y, 3);
+    Serial.print(" m, Theta: "); Serial.print(robot_theta * 180.0 / M_PI, 2);
+    Serial.println(" deg");
+    Serial.println("------------------------------------");
+  }
+
+* **Codigo de ajuste de posición**
+  #include <Wire.h>
+#include <MPU9250_asukiaaa.h> 
+#include <math.h>           
+
+
+const float WHEEL_DISTANCE = 0.13;      
+const unsigned long INITIAL_DELAY_MS = 8000; 
+const unsigned long MOVEMENT_DURATION_MS = 10000; 
+const int BASE_SPEED_PWM = 150;           
+
+
+const int ENA = 11; 
+const int IN1 = 9;  
+const int IN2 = 10; 
+const int ENB = 6;  
+const int IN3 = 4;  
+const int IN4 = 5;  
+const float WHEEL_BASE = 0.15;      
+const float MAX_MOTOR_SPEED_MPS = 0.5; 
+
+float robotX = 0.0;     
+float robotY = 0.0;     
+int currentPwmLeft = 0;
+int currentPwmRight = 0;
+int dirLeft = 0;
+int dirRight = 0;
+unsigned long lastTimeKinematics = 0;
+
+void setup() {
+  pinMode(ENA, OUTPUT);
+  pinMode(IN1, OUTPUT);
+  pinMode(IN2, OUTPUT);
+  pinMode(ENB, OUTPUT);
+  pinMode(IN3, OUTPUT);
+  pinMode(IN4, OUTPUT);
+
+  Serial.begin(9600);
+  Serial.println("Estimacion de Posicion con Cinematica Diferencial");
+  Serial.println("Robot inicia en (0,0) Theta=0");
+
+  lastTimeKinematics = millis();
+}
+
+void moverAdelante(int velocidadIzquierda, int velocidadDerecha) {
+  velocidadIzquierda = constrain(velocidadIzquierda, 0, 255);
+  velocidadDerecha = constrain(velocidadDerecha, 0, 255);
+
+  Serial.print("Moviendo Adelante - PWM Izq: "); Serial.print(velocidadIzquierda);
+  Serial.print(" PWM Der: "); Serial.println(velocidadDerecha);
+
+  digitalWrite(IN1, HIGH); 
+  digitalWrite(IN2, LOW);
+  analogWrite(ENA, velocidadIzquierda);
+
+  digitalWrite(IN3, HIGH); 
+  digitalWrite(IN4, LOW);
+  analogWrite(ENB, velocidadDerecha);
+
+  currentPwmLeft = velocidadIzquierda;
+  currentPwmRight = velocidadDerecha;
+  dirLeft = 1;
+  dirRight = 1;
+}
+
+void moverAtras(int velocidadIzquierda, int velocidadDerecha) {
+  velocidadIzquierda = constrain(velocidadIzquierda, 0, 255);
+  velocidadDerecha = constrain(velocidadDerecha, 0, 255);
+
+  Serial.print("Moviendo Atras - PWM Izq: "); Serial.print(velocidadIzquierda);
+  Serial.print(" PWM Der: "); Serial.println(velocidadDerecha);
+
+  digitalWrite(IN1, LOW);
+  digitalWrite(IN2, HIGH);
+  analogWrite(ENA, velocidadIzquierda);
+
+  digitalWrite(IN3, LOW);
+  digitalWrite(IN4, HIGH);
+  analogWrite(ENB, velocidadDerecha);
+
+  currentPwmLeft = velocidadIzquierda;
+  currentPwmRight = velocidadDerecha;
+  dirLeft = -1;
+  dirRight = -1;
+}
+
+void girarIzquierda(int velocidad) { 
+  velocidad = constrain(velocidad, 0, 255);
+  Serial.print("Girando Izquierda - Velocidad: "); Serial.println(velocidad);
+
+  digitalWrite(IN1, LOW);  
+  digitalWrite(IN2, HIGH);
+  analogWrite(ENA, velocidad);
+
+  digitalWrite(IN3, HIGH); 
+  digitalWrite(IN4, LOW);
+  analogWrite(ENB, velocidad);
+
+  currentPwmLeft = velocidad;
+  currentPwmRight = velocidad;
+  dirLeft = -1; 
+  dirRight = 1; 
+}
+
+void girarDerecha(int velocidad) { 
+  velocidad = constrain(velocidad, 0, 255);
+  Serial.print("Girando Derecha - Velocidad: "); Serial.println(velocidad);
+
+  digitalWrite(IN1, HIGH); 
+  digitalWrite(IN2, LOW);
+  analogWrite(ENA, velocidad);
+
+  digitalWrite(IN3, LOW);  
+  digitalWrite(IN4, HIGH);
+  analogWrite(ENB, velocidad);
+
+  currentPwmLeft = velocidad;
+  currentPwmRight = velocidad;
+  dirLeft = 1;  
+  dirRight = -1; 
+}
+
+void detenerMotores() {
+  Serial.println("Deteniendo Motores");
+  analogWrite(ENA, 0);
+  analogWrite(ENB, 0);
+  digitalWrite(IN1, LOW); 
+  digitalWrite(IN2, LOW);
+  digitalWrite(IN3, LOW);
+  digitalWrite(IN4, LOW);
+
+  currentPwmLeft = 0;
+  currentPwmRight = 0;
+  dirLeft = 0;
+  dirRight = 0;
+}
+
+void actualizarCinematica() {
+  unsigned long currentTime = millis();
+  float deltaTime = (currentTime - lastTimeKinematics) / 1000.0; // Delta t en segundos
+  lastTimeKinematics = currentTime;
+
+  if (deltaTime == 0) return; 
+
+  float vL_mps = dirLeft  * (currentPwmLeft / 255.0) * MAX_MOTOR_SPEED_MPS;
+  float vR_mps = dirRight * (currentPwmRight / 255.0) * MAX_MOTOR_SPEED_MPS;
+
+  float v_robot_mps = (vR_mps + vL_mps) / 2.0;
+  float omega_robot_radps = (vR_mps - vL_mps) / WHEEL_BASE; // Radianes por segundo
+
+  float deltaTheta = omega_robot_radps * deltaTime;
+  float avgTheta = robotTheta + deltaTheta / 2.0;
+
+  float deltaX = v_robot_mps * cos(avgTheta) * deltaTime;
+  float deltaY = v_robot_mps * sin(avgTheta) * deltaTime;
+
+  robotX += deltaX;
+  robotY += deltaY;
+  robotTheta += deltaTheta;
+
+  while (robotTheta > PI) robotTheta -= 2 * PI;
+  while (robotTheta < -PI) robotTheta += 2 * PI;
+}
+
+void loop() {
+  actualizarCinematica();
+
+  moverAdelante(180, 180); 
+  delay(2000);             
+  actualizarCinematica();  
+  imprimirPose();
+
+  detenerMotores();
+  delay(1000);
+  actualizarCinematica();
+  imprimirPose();
+
+  girarDerecha(150);      
+  delay(1000);             
+  actualizarCinematica();
+  imprimirPose();
+
+  detenerMotores();
+  delay(1000);
+  actualizarCinematica();
+  imprimirPose();
+
+  moverAdelante(180,180); 
+  delay(1500);
+  actualizarCinematica();
+  imprimirPose();
+
+  detenerMotores();
+  delay(1000);
+  actualizarCinematica();
+  imprimirPose();
+
+
+  Serial.println("--- Fin de Secuencia --- Esperando 10s ---");
+  delay(10000); 
+}
+
+void imprimirPose() {
+  Serial.print("Pose Estimada: X=");
+  Serial.print(robotX, 4); 
+  Serial.print(" m, Y=");
+  Serial.print(robotY, 4);
+  Serial.print(" m, Theta=");
+  Serial.print(robotTheta * 180.0 / PI, 2); 
+  Serial.println(" deg");
+}
+
+
+
 ### Aspectos adicionales
 
 Tuvimos problemas con el motor derecho de nuestro robot rotande de manera mas lenta que su contraparte restringiendo el ajuste de su posicion.
