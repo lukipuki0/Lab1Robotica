@@ -133,8 +133,13 @@ Cambiar los intervalos de tiempo en los que se aplican comandos o se toman lectu
 
 ---
 
+### Aspectos adicionales
+
+Tuvimos problemas con el motor derecho de nuestro robot rotande de manera mas lenta que su contraparte restringiendo el ajuste de su posicion.
 
 ### Videos
 1) [Test de desplazamiento](https://drive.google.com/file/d/1nokwZUeq9rRg8nBmv52C5dTU3TDMIuL5/view?usp=drive_link)
 2) [Prueba de giroscopio y acelerometro](https://drive.google.com/file/d/1nlhAjYXBzJLkUY0hQxEpVfxsgM_zUrdT/view?usp=drive_link)
 3) [Medicio con sensor ultrasonico](https://drive.google.com/file/d/15SWQwM49HeAbmrr0XVFq3G-2YpeKKy19/view?usp=drive_link)
+4) [Video ejercicio 2.2 parte 1](https://drive.google.com/file/d/1oN8sdKT6e6eRqnFSMuFRyw29IkOSf3lg/view?usp=drive_link)
+5) [Video ejercicio 2.2 parte 2](https://drive.google.com/file/d/1o7HBVTGWAaULxNEcVYtREUhBlEsQpCmD/view?usp=drive_link)
